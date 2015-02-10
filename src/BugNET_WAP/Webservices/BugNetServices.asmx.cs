@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Security.Permissions;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -483,7 +484,6 @@ namespace BugNET.Webservices
             return returnval.ToArray();
         }
 
-
         /// <summary>
         /// Returns the internal ID of a ProjectCode
         /// </summary>
@@ -581,7 +581,45 @@ namespace BugNET.Webservices
 
         #endregion
 
+        #region Web Service Extensions
 
+        /// <summary>
+        /// List of all status objects in a project
+        /// </summary>
+        /// <param name="projectId">project id</param>
+        /// <returns>Array of all status names</returns>
+        [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
+        [WebMethod(EnableSession = true)]
+        public Status[] GetStatusObjects(int projectId)
+        {
+            if (ProjectManager.GetById(projectId).AccessType == ProjectAccessType.Private && !ProjectManager.IsUserProjectMember(UserName, projectId))
+                throw new UnauthorizedAccessException(string.Format(LoggingManager.GetErrorMessageResource("ProjectAccessDenied"), UserName));
+
+            var statuslist = StatusManager.GetByProjectId(projectId);
+            return statuslist.ToArray();
+        }
+
+        /// <summary>
+        /// Returns the internal ID of a ProjectCode
+        /// </summary>
+        /// <returns>Project ID array</returns>
+        [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
+        [WebMethod(EnableSession = true)]
+        public Project[] GetProjects()
+        {
+            var projects = new List<Project>();
+            projects.AddRange(ProjectManager.GetAllProjects().Where(project => !(project.AccessType == Common.ProjectAccessType.Private && !ProjectManager.IsUserProjectMember(UserName, project.Id))));
+
+            return projects.ToArray();
+        }
+
+        //public void UpdateIssue(int projectId, int issueId)
+        //{
+        //    var issue = new Issue();
+            
+        //}
+
+        #endregion
 
     }
 }
