@@ -581,7 +581,7 @@ namespace BugNET.Webservices
 
         #endregion
 
-        #region Web Service Extensions
+        #region BugNETTortoise Web Service Extensions
 
         /// <summary>
         /// List of all status objects in a project
