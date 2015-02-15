@@ -636,7 +636,7 @@ namespace BugNET.Webservices
         /// <returns>Project ID array</returns>
         [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
         [WebMethod(EnableSession = true)]
-        public void UpdateIssue(int projectId, int issueId, int statusId, string userName)
+        public void UpdateIssueStatus(int projectId, int issueId, int statusId, string userName)
         {
             var user = UserManager.GetUser(userName);
             var issue = IssueManager.GetOpenIssues(projectId).First(item => item.Id == issueId);
@@ -644,6 +644,30 @@ namespace BugNET.Webservices
             issue.StatusId = statusId;
             issue.StatusName = StatusManager.GetById(statusId).Name;
             issue.StatusImageUrl = StatusManager.GetById(statusId).ImageUrl;
+            issue.LastUpdate = DateTime.Now;
+            issue.LastUpdateUserName = user.UserName;
+
+            HttpContext.Current = null;
+            if (!IssueManager.SaveOrUpdate(issue))
+            {
+                throw new Exception(Resources.Exceptions.SaveIssueError);
+            }
+        }
+
+        /// <summary>
+        /// Returns the internal ID of a ProjectCode
+        /// </summary>
+        /// <returns>Project ID array</returns>
+        [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
+        [WebMethod(EnableSession = true)]
+        public void ReassignIssueToCreator(int projectId, int issueId, string userName)
+        {
+            var user = UserManager.GetUser(userName);
+            var issue = IssueManager.GetOpenIssues(projectId).First(item => item.Id == issueId);
+
+            issue.AssignedDisplayName = issue.CreatorDisplayName;
+            issue.AssignedUserId = issue.CreatorUserId;
+            issue.AssignedUserName = issue.CreatorUserName;
             issue.LastUpdate = DateTime.Now;
             issue.LastUpdateUserName = user.UserName;
 
