@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Security.Permissions;
 using System.Threading;
+using System.Web;
 using System.Web.Script.Serialization;
 using System.Web.Script.Services;
 using System.Web.Services;
@@ -11,6 +13,7 @@ using BugNET.BLL;
 using BugNET.Common;
 using BugNET.Entities;
 using BugNET;
+using Microsoft.Data.OData.Query.SemanticAst;
 
 namespace BugNET.Webservices
 {
@@ -198,10 +201,10 @@ namespace BugNET.Webservices
 
                 foreach (var pCat in parentCategories)
                 {
-                    var pNode = new JsTreeNode {attr = new Attributes()};
+                    var pNode = new JsTreeNode { attr = new Attributes() };
                     pNode.attr.id = Convert.ToString(pCat.Id);
                     pNode.attr.rel = "cat" + Convert.ToString(pCat.Id);
-                    pNode.data = new Data {title = Convert.ToString(pCat.Name), icon = "../../../images/plugin.gif"};
+                    pNode.data = new Data { title = Convert.ToString(pCat.Name), icon = "../../../images/plugin.gif" };
                     tree.Add(pNode);
 
                     if (pCat.ChildCount > 0)
@@ -613,11 +616,43 @@ namespace BugNET.Webservices
             return projects.ToArray();
         }
 
-        //public void UpdateIssue(int projectId, int issueId)
-        //{
-        //    var issue = new Issue();
-            
-        //}
+        /// <summary>
+        /// Returns the internal ID of a ProjectCode
+        /// </summary>
+        /// <returns>Project ID array</returns>
+        [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
+        [WebMethod(EnableSession = true)]
+        public Issue[] GetProjectIssuesByProjectId(int projectId)
+        {
+            var issues = new List<Issue>();
+            issues.AddRange(IssueManager.GetOpenIssues(projectId).Where(issue => issue.AssignedUserName == UserName && !ProjectManager.IsUserProjectMember(UserName, issue.Id)));
+
+            return issues.ToArray();
+        }
+
+        /// <summary>
+        /// Returns the internal ID of a ProjectCode
+        /// </summary>
+        /// <returns>Project ID array</returns>
+        [PrincipalPermission(SecurityAction.Demand, Authenticated = true)]
+        [WebMethod(EnableSession = true)]
+        public void UpdateIssue(int projectId, int issueId, int statusId, string userName)
+        {
+            var user = UserManager.GetUser(userName);
+            var issue = IssueManager.GetOpenIssues(projectId).First(item => item.Id == issueId);
+
+            issue.StatusId = statusId;
+            issue.StatusName = StatusManager.GetById(statusId).Name;
+            issue.StatusImageUrl = StatusManager.GetById(statusId).ImageUrl;
+            issue.LastUpdate = DateTime.Now;
+            issue.LastUpdateUserName = user.UserName;
+
+            HttpContext.Current = null;
+            if (!IssueManager.SaveOrUpdate(issue))
+            {
+                throw new Exception(Resources.Exceptions.SaveIssueError);
+            }
+        }
 
         #endregion
 

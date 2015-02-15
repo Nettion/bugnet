@@ -91,7 +91,7 @@ namespace BugNET.BLL
             catch(Exception ex)
             {
                 Log.Error(LoggingManager.GetErrorMessageResource("SaveIssueError"), ex);
-                return false;
+                throw;
             }
         }
 
